@@ -1,0 +1,15 @@
+[project]
+name = "intel-graph"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "beautifulsoup4>=4.15.0",
+    "fastapi>=0.139.0",
+    "httpx>=0.28.1",
+    "langchain-core>=1.4.9",
+    "langgraph>=1.2.9",
+    "pydantic>=2.13.4",
+    "uvicorn>=0.51.0",
+]
