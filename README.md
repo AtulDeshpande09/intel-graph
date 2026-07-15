@@ -4,6 +4,7 @@
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 [![Package Manager: uv](https://img.shields.io/badge/package%20manager-uv-DE5D83?style=flat-square)](https://github.com/astral-sh/uv)
 [![Tests: Pytest](https://img.shields.io/badge/tests-pytest-0A9EDC?style=flat-square&logo=pytest&logoColor=white)](https://docs.pytest.org/)
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://streamlit.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 
 # Intel-Graph: Autonomous Multi-Agent Lead Intelligence Engine
@@ -66,7 +67,67 @@ export GROQ_API_KEY="your-actual-groq-api-key"
 
 ```
 
+---
 
+## Running the Streamlit Frontend
+
+We have built a sleek, user-friendly frontend using Streamlit to make interacting with the multi-agent graph incredibly intuitive. 
+
+To run the Streamlit UI locally alongside your running FastAPI server:
+
+```bash
+# Install Streamlit if you haven't already
+uv add streamlit
+
+# Spin up the frontend
+uv run streamlit run src/intel_graph/app_ui.py --server.port 8501
+
+```
+
+Open `http://localhost:8501` in your browser to access the dashboard.
+
+---
+
+##  Running with Docker (Recommended)
+
+The entire microservice stack (FastAPI backend + Streamlit frontend) is fully containerized. You can build and run the entire ecosystem with a single command without needing to set up Python dependencies locally.
+
+### Prerequisites
+
+Make sure you have your Groq API key set in your environment:
+
+```bash
+export GROQ_API_KEY="your-groq-api-key"
+
+```
+
+### Local Development Setup
+
+Run the multi-container application locally:
+
+```bash
+# Build and start both services
+docker compose up --build
+
+```
+
+* **FastAPI Backend Swagger Docs:** `http://localhost:8000/docs`
+* **Streamlit Frontend Dashboard:** `http://localhost:8501`
+
+---
+
+##  Pulling Directly from Docker Hub
+
+The production image for this project is public and hosted on Docker Hub. You can pull and run it instantly without even cloning this repository:
+
+```bash
+# Pull the latest image
+docker pull atuldeshpande09/intel-graph:latest
+
+# Run the container (make sure to pass your API key)
+docker run -p 8501:8501 -e GROQ_API_KEY="your-groq-api-key" your_username/intel-graph:latest
+
+```
 
 ---
 
