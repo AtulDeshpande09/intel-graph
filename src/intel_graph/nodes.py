@@ -9,7 +9,7 @@ from intel_graph.state import LeadQualification, OutreachDraft
 
 # Initialize our LLM (Using Groq for ultra-fast inference speeds)
 # Make sure you run: export GROQ_API_KEY="your-api-key" in your terminal
-llm = ChatGroq(model="llama-3.1-70b-versatile", temperature=0.1)
+llm = ChatGroq(model="openai/gpt-oss-120b", temperature=0.1)
 
 # ==========================================
 # 1. WEB SCRAPING UTILITY

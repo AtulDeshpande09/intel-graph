@@ -15,11 +15,14 @@ dependencies = [
     "uvicorn>=0.51.0",
 ]
 
-packages = [{ include = "intel_graph", from = "src" }]
 
+[tool.setuptools]
+packages = ["intel_graph"]
+package-dir = {"" = "src"}
+
+# Modern UV dependency grouping structure
 [dependency-groups]
-[tool.uv]
-dev-dependencies = [
+dev = [
     "pytest>=8.0.0",
     "pytest-mock>=3.14.0",
 ]

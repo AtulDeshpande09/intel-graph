@@ -1,15 +1,15 @@
 import os
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, HttpUrl, Field
 from typing import Dict, Any, Optional
 
 # Import your compiled LangGraph application
-from app import app as graph_pipeline
+from intel_graph.app import app as graph_pipeline
 
 # Initialize FastAPI app
 server = FastAPI(
-    title="ICP-Scout Engine API",
+    title="intel-graph Engine API",
     description="Production-grade asynchronous multi-agent lead intelligence & outreach generation engine.",
     version="1.0.0"
 )
@@ -28,8 +28,11 @@ server.add_middleware(
 # ==========================================
 
 class ResearchRequest(BaseModel):
-    """The incoming payload validation schema."""
-    domain: str = BaseModel.Field(..., example="stripe.com", description="The target company domain to analyze.")
+    domain: str = Field(
+        ..., 
+        description="The target company domain to analyze.",
+        json_schema_extra={"example": "stripe.com"}
+    )
 
 class ResearchResponse(BaseModel):
     """The structured server response payload."""
