@@ -216,3 +216,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+src/intel_graph/__pycache__/
+tests/__pycache__/
+src/intel_graph.egg-info/
