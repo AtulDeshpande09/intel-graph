@@ -4,6 +4,8 @@ from bs4 import BeautifulSoup
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from state import AgentState, CompanyIntel
+from langchain_core.messages import HumanMessage
+from state import LeadQualification, OutreachDraft
 
 # Initialize our LLM (Using Groq for ultra-fast inference speeds)
 # Make sure you run: export GROQ_API_KEY="your-api-key" in your terminal
@@ -96,3 +98,129 @@ def research_node(state: AgentState) -> dict:
             "intel": None,
             "logs": current_logs
         }
+
+
+# ==========================================
+# 3. QUALIFICATION NODE (The Gatekeeper)
+# ==========================================
+
+def qualification_node(state: AgentState) -> dict:
+    """Evaluates the extracted company intelligence against a target B2B profile."""
+    intel = state["intel"]
+    current_logs = state.get("logs", []).copy()
+    
+    if not intel:
+        current_logs.append("[Qualification Node] Skipped: No company intelligence payload found.")
+        return {
+            "qualification": LeadQualification(is_fit=False, confidence_score=0.0, justification="Missing company intel."),
+            "logs": current_logs
+        }
+        
+    current_logs.append(f"[System] Initiating ICP qualification for {intel.company_name}...")
+
+    # Define the strict target criteria (The Ideal Customer Profile)
+    # This aligns directly with GTMER's domain: B2B companies looking for automation
+    target_icp_description = (
+        "Mid-sized or enterprise B2B companies, tech startups, SaaS organizations, "
+        "digital agencies, healthcare platforms, or fintech services. They must sell a product "
+        "or service directly to other businesses (B2B). Companies that are strictly B2C "
+        "(selling directly to individual retail consumers) are an absolute mismatch."
+    )
+
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", (
+            "You are a strict B2B Sales Operations Specialist evaluating incoming leads.\n"
+            "Compare the extracted company profile against the target Ideal Customer Profile (ICP) parameters below.\n\n"
+            "Target ICP Parameters:\n{icp_criteria}\n\n"
+            "Analyze objectively. If they sell to businesses, mark them as a fit. If they sell strictly to "
+            "individual retail consumers, mark them as a mismatch."
+        )),
+        ("human", (
+            "Company Profile Data:\n"
+            "- Name: {name}\n"
+            "- Product: {product}\n"
+            "- Target Audience: {audience}\n"
+            "- Value Prop: {value_prop}"
+        ))
+    ])
+
+    structured_llm = llm.with_structured_output(LeadQualification)
+    chain = prompt | structured_llm
+
+    try:
+        evaluation = chain.invoke({
+            "icp_criteria": target_icp_description,
+            "name": intel.company_name,
+            "product": intel.core_product,
+            "audience": intel.target_audience,
+            "value_prop": intel.value_proposition
+        })
+        
+        status = "PASSED" if evaluation.is_fit else "FAILED"
+        current_logs.append(f"[Qualification Agent] Lead status: {status}. Reason: {evaluation.justification}")
+        
+        return {
+            "qualification": evaluation,
+            "logs": current_logs
+        }
+    except Exception as e:
+        current_logs.append(f"[Error] Qualification execution failed: {str(e)}")
+        return {
+            "qualification": LeadQualification(is_fit=False, confidence_score=0.0, justification=f"Processing error: {str(e)}"),
+            "logs": current_logs
+        }
+
+# ==========================================
+# 4. COPYWRITING NODE (The Convincer)
+# ==========================================
+
+def copywriter_node(state: AgentState) -> dict:
+    """Generates an elite, hyper-personalized outreach draft based on qualified business data."""
+    intel = state["intel"]
+    qualification = state["qualification"]
+    current_logs = state.get("logs", []).copy()
+    
+    # Safety fallback step
+    if not qualification or not qualification.is_fit:
+        current_logs.append("[Copywriter Node] Skipped: Lead did not pass the qualification criteria framework.")
+        return {"outreach": None, "logs": current_logs}
+        
+    current_logs.append(f"[System] Drafting context-aware outreach sequence for {intel.company_name}...")
+
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", (
+            "You are an elite B2B Growth Marketer writing cold outreach emails that actually book meetings.\n"
+            "Rules:\n"
+            "1. Be brief and direct (under 120 words). Never use corporate fluff like 'Hope this finds you well' or 'I am writing to you because'.\n"
+            "2. Lead with a personalized hook based on their actual product value proposition.\n"
+            "3. Pitch a clear business transformation (e.g., automating pipeline, cutting manual overhead).\n"
+            "4. End with a low-friction, casual call to action (CTA) asking for a short chat next week."
+        )),
+        ("human", (
+            "Company Intel to synthesize:\n"
+            "- Target Name: {name}\n"
+            "- Target Core Offering: {product}\n"
+            "- Target Corporate Value Prop: {value_prop}\n"
+            "- Analyst Justification Note: {justification}"
+        ))
+    ])
+
+    structured_llm = llm.with_structured_output(OutreachDraft)
+    chain = prompt | structured_llm
+
+    try:
+        outreach_payload = chain.invoke({
+            "name": intel.company_name,
+            "product": intel.core_product,
+            "value_prop": intel.value_proposition,
+            "justification": qualification.justification
+        })
+        
+        current_logs.append(f"[Copywriter Agent] Completed outreach payload structure for {intel.company_name}.")
+        return {
+            "outreach": outreach_payload,
+            "logs": current_logs
+        }
+    except Exception as e:
+        current_logs.append(f"[Error] Copywriting engine failed: {str(e)}")
+        return {"outreach": None, "logs": current_logs}
