@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock
 import httpx
-from intel_graph.nodes import scrape_domain, scrape_domain
+from intel_graph.nodes import scrape_domain
 
 # ==========================================
 # 1. TEST GRACEFUL FAILURE ROUTING
