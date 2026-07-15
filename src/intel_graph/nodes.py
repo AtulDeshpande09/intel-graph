@@ -3,9 +3,9 @@ import httpx
 from bs4 import BeautifulSoup
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
-from state import AgentState, CompanyIntel
+from intel_graph.state import AgentState, CompanyIntel
 from langchain_core.messages import HumanMessage
-from state import LeadQualification, OutreachDraft
+from intel_graph.state import LeadQualification, OutreachDraft
 
 # Initialize our LLM (Using Groq for ultra-fast inference speeds)
 # Make sure you run: export GROQ_API_KEY="your-api-key" in your terminal
