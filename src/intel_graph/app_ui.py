@@ -1,5 +1,6 @@
 import streamlit as st
 import httpx
+import os
 
 # Configure professional page layout
 st.set_page_config(page_title="Intel-Graph Engine", page_icon="🤖", layout="wide")
@@ -26,6 +27,7 @@ if submit_btn and domain_input:
         try:
             # Synchronous request call to your active local FastAPI microservice
             with httpx.Client(timeout=45.0) as client:
+                backend_host = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
                 response = client.post("http://127.0.0.1:8000/api/research", json={"domain": clean_domain})
             
             if response.status_code == 200:
