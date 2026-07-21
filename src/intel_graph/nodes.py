@@ -9,7 +9,19 @@ from intel_graph.state import LeadQualification, OutreachDraft
 
 # Initialize our LLM (Using Groq for ultra-fast inference speeds)
 # Make sure you run: export GROQ_API_KEY="your-api-key" in your terminal
-llm = ChatGroq(model="openai/gpt-oss-120b", temperature=0.1)
+
+# reasoning model
+reasoning_llm = ChatGroq(
+    model="openai/gpt-oss-120b", 
+    temperature=0.1
+)
+
+# 2. Fast/Cheap Model
+fast_llm = ChatGroq(
+    model="llama-3.1-8b-instant", 
+    temperature=0.3,
+    max_tokens=250  # Cap generation length strictly to prevent runaway output costs
+)
 
 # ==========================================
 # 1. WEB SCRAPING UTILITY
@@ -80,7 +92,7 @@ def research_node(state: AgentState) -> dict:
     ])
     
     # Enforce Pydantic structure directly on our fast inference LLM
-    structured_llm = llm.with_structured_output(CompanyIntel)
+    structured_llm = reasoning_llm.with_structured_output(CompanyIntel)
     chain = prompt | structured_llm
     
     try:
@@ -144,7 +156,7 @@ def qualification_node(state: AgentState) -> dict:
         ))
     ])
 
-    structured_llm = llm.with_structured_output(LeadQualification)
+    structured_llm = reasoning_llm.with_structured_output(LeadQualification)
     chain = prompt | structured_llm
 
     try:
@@ -204,7 +216,7 @@ def copywriter_node(state: AgentState) -> dict:
         ))
     ])
 
-    structured_llm = llm.with_structured_output(OutreachDraft)
+    structured_llm = fast_llm.with_structured_output(OutreachDraft)
     chain = prompt | structured_llm
 
     try:
