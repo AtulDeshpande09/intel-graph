@@ -1,4 +1,5 @@
-from typing import List, Optional
+import operator
+from typing import Annotated, List, Optional, TypedDict
 from pydantic import BaseModel, Field
 from typing_extensions import TypedDict
 
@@ -37,4 +38,7 @@ class AgentState(TypedDict):
     intel: Optional[CompanyIntel]         # Filled by Research Agent
     qualification: Optional[LeadQualification]  # Filled by Qualification Agent
     outreach: Optional[OutreachDraft]     # Filled by Copywriter Agent
-    logs: List[str]                       # Internal system execution tracking log
+    status: Optional[str]                 # Execution pipeline routing status
+    
+    # Using operator.add lets parallel nodes safely append logs concurrently!
+    logs: Annotated[List[str], operator.add]
