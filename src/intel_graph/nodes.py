@@ -9,7 +9,19 @@ from intel_graph.state import LeadQualification, OutreachDraft
 
 # Initialize our LLM (Using Groq for ultra-fast inference speeds)
 # Make sure you run: export GROQ_API_KEY="your-api-key" in your terminal
-llm = ChatGroq(model="openai/gpt-oss-120b", temperature=0.1)
+
+# reasoning model
+reasoning_llm = ChatGroq(
+    model="openai/gpt-oss-120b", 
+    temperature=0.1
+)
+
+# 2. Fast/Cheap Model
+fast_llm = ChatGroq(
+    model="llama-3.1-8b-instant", 
+    temperature=0.3,
+    max_tokens=250  # Cap generation length strictly to prevent runaway output costs
+)
 
 # ==========================================
 # 1. WEB SCRAPING UTILITY
@@ -80,7 +92,7 @@ def research_node(state: AgentState) -> dict:
     ])
     
     # Enforce Pydantic structure directly on our fast inference LLM
-    structured_llm = llm.with_structured_output(CompanyIntel)
+    structured_llm = reasoning_llm.with_structured_output(CompanyIntel)
     chain = prompt | structured_llm
     
     try:
@@ -144,7 +156,7 @@ def qualification_node(state: AgentState) -> dict:
         ))
     ])
 
-    structured_llm = llm.with_structured_output(LeadQualification)
+    structured_llm = reasoning_llm.with_structured_output(LeadQualification)
     chain = prompt | structured_llm
 
     try:
@@ -175,23 +187,23 @@ def qualification_node(state: AgentState) -> dict:
 # ==========================================
 
 def copywriter_node(state: AgentState) -> dict:
-    """Generates an elite, hyper-personalized outreach draft based on qualified business data."""
-    intel = state["intel"]
-    qualification = state["qualification"]
-    current_logs = state.get("logs", []).copy()
+    """Generates an elite, hyper-personalized outreach draft in parallel using extracted intel."""
+    intel = state.get("intel")
     
-    # Safety fallback step
-    if not qualification or not qualification.is_fit:
-        current_logs.append("[Copywriter Node] Skipped: Lead did not pass the qualification criteria framework.")
-        return {"outreach": None, "logs": current_logs}
+    # Safety fallback step: ensure research succeeded
+    if not intel:
+        return {
+            "outreach": None, 
+            "logs": ["[Copywriter Node] Skipped: Missing company intel payload."]
+        }
         
-    current_logs.append(f"[System] Drafting context-aware outreach sequence for {intel.company_name}...")
+    new_logs = [f"[System] Drafting context-aware outreach sequence for {intel.company_name}..."]
 
     prompt = ChatPromptTemplate.from_messages([
         ("system", (
             "You are an elite B2B Growth Marketer writing cold outreach emails that actually book meetings.\n"
             "Rules:\n"
-            "1. Be brief and direct (under 120 words). Never use corporate fluff like 'Hope this finds you well' or 'I am writing to you because'.\n"
+            "1. Be brief and direct (under 120 words). Never use corporate fluff like 'Hope this finds you well'.\n"
             "2. Lead with a personalized hook based on their actual product value proposition.\n"
             "3. Pitch a clear business transformation (e.g., automating pipeline, cutting manual overhead).\n"
             "4. End with a low-friction, casual call to action (CTA) asking for a short chat next week."
@@ -200,27 +212,27 @@ def copywriter_node(state: AgentState) -> dict:
             "Company Intel to synthesize:\n"
             "- Target Name: {name}\n"
             "- Target Core Offering: {product}\n"
-            "- Target Corporate Value Prop: {value_prop}\n"
-            "- Analyst Justification Note: {justification}"
+            "- Target Corporate Value Prop: {value_prop}"
         ))
     ])
 
-    structured_llm = llm.with_structured_output(OutreachDraft)
+    structured_llm = fast_llm.with_structured_output(OutreachDraft)
     chain = prompt | structured_llm
 
     try:
         outreach_payload = chain.invoke({
             "name": intel.company_name,
             "product": intel.core_product,
-            "value_prop": intel.value_proposition,
-            "justification": qualification.justification
+            "value_prop": intel.value_proposition
         })
         
-        current_logs.append(f"[Copywriter Agent] Completed outreach payload structure for {intel.company_name}.")
+        new_logs.append(f"[Copywriter Agent] Completed outreach payload structure for {intel.company_name}.")
         return {
             "outreach": outreach_payload,
-            "logs": current_logs
+            "logs": new_logs
         }
     except Exception as e:
-        current_logs.append(f"[Error] Copywriting engine failed: {str(e)}")
-        return {"outreach": None, "logs": current_logs}
+        return {
+            "outreach": None, 
+            "logs": [f"[Error] Copywriting engine failed: {str(e)}"]
+        }
